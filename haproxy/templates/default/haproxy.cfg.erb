@@ -90,7 +90,7 @@ frontend all
     <% end -%>
   <% end -%>
 
-  <% elsif !node[:haproxy][:nodejs_backends].empty? -%>
+  <% if !node[:haproxy][:nodejs_backends].empty? -%>
   default_backend nodejs_app_servers
   <% end -%>
 <% end -%>
