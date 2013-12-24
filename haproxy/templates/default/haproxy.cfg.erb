@@ -1,3 +1,5 @@
+# AWS OPSWorks haproxy defaults, with a few modifications from
+# http://stackoverflow.com/questions/4360221/haproxy-websocket-disconnection/4737648#4737648
 global
   log 127.0.0.1   local0
   log 127.0.0.1   local1 notice
@@ -47,6 +49,9 @@ listen application 0.0.0.0:80
 <% if !node[:haproxy][:nodejs_backends].empty? -%>
 backend nodejs_app_servers
   balance <%= node[:haproxy][:balance] %>
+  # Socket.io specifics
+  timeout queue 5000
+   # socket.io specifics end
   option redispatch
   option forwardfor
   option httpchk <%= node[:haproxy][:health_check_method] %> <%= node[:haproxy][:health_check_url] %>
@@ -55,7 +60,8 @@ backend nodejs_app_servers
   <% end -%>
 <% end -%>
 
-frontend http-in
+# Serve as the frontend of everything, instead of just http
+frontend all
   bind :80
 
   # all domains of node.js applications
@@ -64,6 +70,9 @@ frontend http-in
   acl nodejs_application_<%= app_name %>_domain_<%= domain.gsub(/[^\w.:-]/, '_') %> hdr_end(host) -i <%= domain %>
       <% if app_config['mounted_at'] -%>
   acl nodejs_application_<%= app_name %>_domain_<%= domain.gsub(/[^\w.:-]/, '_') %>_path path_beg <%= app_config['mounted_at'] %>
+  # Forward websocket
+  acl is_websocket hdr(Upgrade) -i WebSocket
+  acl is_websocket hdr_beg(Host) -i ws
       <% end -%>
     <% end -%>
   <% end -%>
